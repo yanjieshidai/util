@@ -1,0 +1,120 @@
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.security.Security;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+
+public class TestThreeDes {
+    public static void main(String[] args) throws IOException {
+        Des3.start();
+    }
+}
+
+
+class Des3 {
+    public static final byte[] Key = "xxxx".getBytes();
+    private static final String Algorithm = "DES";  //定义 加密算法,可用 DES,DESede,Blowfish
+
+    // 加密字符串
+    public static byte[] encryptMode(byte[] keybyte, byte[] src) {
+        try { // 生成密钥
+            SecretKey deskey = new SecretKeySpec(keybyte, Algorithm); // 加密
+            Cipher c1 = Cipher.getInstance(Algorithm);
+            c1.init(Cipher.ENCRYPT_MODE, deskey);
+            return c1.doFinal(src);
+        } catch (java.security.NoSuchAlgorithmException e1) {
+            e1.printStackTrace();
+        } catch (javax.crypto.NoSuchPaddingException e2) {
+            e2.printStackTrace();
+        } catch (java.lang.Exception e3) {
+            e3.printStackTrace();
+        }
+        return null;
+    }
+
+    // 解密字符串
+    public static byte[] decryptMode(byte[] keybyte, byte[] src) {
+        try { // 生成密钥
+            SecretKey deskey = new SecretKeySpec(keybyte, Algorithm); // 解密
+            Cipher c1 = Cipher.getInstance(Algorithm);
+            c1.init(Cipher.DECRYPT_MODE, deskey);
+            return c1.doFinal(src);
+        } catch (java.security.NoSuchAlgorithmException e1) {
+            e1.printStackTrace();
+        } catch (javax.crypto.NoSuchPaddingException e2) {
+            e2.printStackTrace();
+        } catch (java.lang.Exception e3) {
+            e3.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void start() throws IOException {
+        Security.addProvider(new com.sun.crypto.provider.SunJCE());
+        final byte[] keyBytes = Key;    //8字节的密钥
+
+        File in = new File("/file1.tar.gz");
+        File out = new File("/file2");
+        File out2 = new File("/file3.tar.gz");
+        encryptFile(in, out, keyBytes);
+        decryptFile(out, out2, keyBytes);
+        System.out.println("done");
+    }
+
+    public static void encryptFile(File in, File out, byte[] keyBytes) throws IOException {
+        if (!in.exists()) {
+            throw new IOException("没找到文件" + in.getAbsolutePath());
+        }
+        if (!out.exists()) {
+            out.createNewFile();
+            System.out.println("creat file:" + out.getAbsolutePath());
+        }
+        FileInputStream is = new FileInputStream(in);
+        FileOutputStream os = new FileOutputStream(out);
+        FileChannel fis = is.getChannel();
+        FileChannel fos = os.getChannel();
+        ByteBuffer bytedata = ByteBuffer.allocate(Long.valueOf(in.length()).intValue());
+        while (fis.read(bytedata) != -1) {
+            //通过通道读写交叉进行。
+            bytedata.flip();
+            byte[] result = encryptMode(keyBytes, bytedata.array());
+            fos.write(ByteBuffer.wrap(result));
+            bytedata.clear();
+        }
+        fis.close();
+        fos.close();
+        is.close();
+        os.close();
+    }
+
+    public static void decryptFile(File in, File out, byte[] keyBytes) throws IOException {
+        if (!in.exists()) {
+            throw new IOException("没找到文件" + in.getAbsolutePath());
+        }
+        if (!out.exists()) {
+            out.createNewFile();
+            System.out.println("creat file:" + out.getAbsolutePath());
+        }
+        FileInputStream is = new FileInputStream(in);
+        FileOutputStream os = new FileOutputStream(out);
+        FileChannel fis = is.getChannel();
+        FileChannel fos = os.getChannel();
+        ByteBuffer bytedata = ByteBuffer.allocate(Long.valueOf(in.length()).intValue());
+        while (fis.read(bytedata) != -1) {
+            //通过通道读写交叉进行。
+            bytedata.flip();
+            byte[] result = decryptMode(keyBytes, bytedata.array());
+            fos.write(ByteBuffer.wrap(result));
+            bytedata.clear();
+        }
+        fis.close();
+        fos.close();
+        is.close();
+        os.close();
+    }
+}
